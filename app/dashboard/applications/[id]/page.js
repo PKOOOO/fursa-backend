@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+'use client';
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import prisma from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,18 +13,58 @@ const statusVariant = {
   rejected: "destructive",
 };
 
-export default async function ApplicationDetailPage({ params }) {
+export default function ApplicationDetailPage({ params }) {
   const { id } = params;
+  const [application, setApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const application = await prisma.application.findUnique({
-    where: { id },
-    include: {
-      job: true,
-    },
-  });
+  useEffect(() => {
+    const fetchApplication = async () => {
+      try {
+        const res = await fetch(`/api/applications/${id}`);
+        if (!res.ok) {
+          throw new Error("Failed to load application");
+        }
+        const data = await res.json();
+        setApplication(data);
+      } catch (err) {
+        console.error(err);
+        setError("Could not load application details.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!application) {
-    notFound();
+    if (id) {
+      fetchApplication();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-6 h-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !application) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Application details
+          </h1>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/applications">Back to applications</Link>
+          </Button>
+        </div>
+        <p className="text-sm text-destructive">
+          {error || "Application not found."}
+        </p>
+      </div>
+    );
   }
 
   return (
