@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,15 +15,24 @@ const statusVariant = {
 };
 
 export default function ApplicationDetailPage({ params }) {
-  const { id } = params;
+  const pathname = usePathname();
+  const routeId =
+    params?.id ?? pathname.split("/").filter(Boolean).pop() ?? null;
+
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!routeId) {
+      setError("Missing application id in URL.");
+      setLoading(false);
+      return;
+    }
+
     const fetchApplication = async () => {
       try {
-        const res = await fetch(`/api/applications/${id}`);
+        const res = await fetch(`/api/applications/${routeId}`);
         if (!res.ok) {
           throw new Error("Failed to load application");
         }
@@ -36,10 +46,8 @@ export default function ApplicationDetailPage({ params }) {
       }
     };
 
-    if (id) {
-      fetchApplication();
-    }
-  }, [id]);
+    fetchApplication();
+  }, [routeId]);
 
   if (loading) {
     return (
